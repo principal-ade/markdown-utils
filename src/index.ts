@@ -64,3 +64,29 @@ export {
   findSlideByTitle,
   findSlideIndexByTitle,
 } from './utils/slide-titles';
+
+// Diff exports - types
+export type {
+  DiffStatus,
+  TextDiffType,
+  TextDiff,
+  SlideDiff,
+  DiffSummary,
+  PresentationDiff,
+} from './types/diff';
+
+// Diff exports - utilities
+export {
+  diffPresentations,
+  calculateDiffSummary,
+  hasChanges,
+  getTotalChangedSlides,
+  formatDiffSummary,
+  diffText,
+  normalizedTextEquals,
+  normalizeText,
+  matchSlides,
+  slidesAreEqual,
+  normalizeSlideContent,
+} from './diff';
+export type { SlideMatch } from './diff';

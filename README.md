@@ -14,9 +14,10 @@ bun add @a24z/markdown-utils
 
 - 📝 **Markdown parsing** - Parse markdown into typed chunks
 - 🎯 **Slide extraction** - Split markdown into presentation slides
+- 🔀 **Presentation diffing** - Compare two presentations slide-by-slide
 - 🔌 **Extensible** - Plugin system for custom chunk types
 - 🚀 **Zero React dependencies** - Pure TypeScript utilities
-- 📦 **Lightweight** - ~15KB bundled
+- 📦 **Lightweight** - ~22KB bundled
 
 ## Usage
 
@@ -49,6 +50,37 @@ const presentation = parseMarkdownIntoPresentation(
 console.log(`${presentation.slides.length} slides found`);
 ```
 
+### Compare Two Presentations
+
+```typescript
+import { diffPresentations, parseMarkdownIntoPresentation } from '@a24z/markdown-utils';
+
+const beforePresentation = parseMarkdownIntoPresentation(beforeMarkdown);
+const afterPresentation = parseMarkdownIntoPresentation(afterMarkdown);
+
+const diff = diffPresentations(beforePresentation, afterPresentation);
+
+console.log(`${diff.summary.modified} slides modified`);
+console.log(`${diff.summary.added} slides added`);
+console.log(`${diff.summary.removed} slides removed`);
+
+// Iterate through slide-by-slide diffs
+diff.slideDiffs.forEach(slideDiff => {
+  console.log(`Slide status: ${slideDiff.status}`);
+
+  if (slideDiff.status === 'modified') {
+    // Access line-by-line content changes
+    slideDiff.contentChanges?.forEach(change => {
+      if (change.type === 'add') {
+        console.log(`+ ${change.value}`);
+      } else if (change.type === 'remove') {
+        console.log(`- ${change.value}`);
+      }
+    });
+  }
+});
+```
+
 ### Extend with Custom Chunks
 
 ```typescript
@@ -77,17 +109,39 @@ const chunks = parseMarkdownChunks<MathChunk | ContentChunk>(
 
 ### Types
 
+**Chunks:**
 - `BaseChunk<T>` - Base interface for extensible chunks
 - `MarkdownChunk`, `MermaidChunk`, `CodeChunk` - Built-in chunk types
+
+**Presentations:**
 - `MarkdownPresentation`, `MarkdownSlide` - Presentation types
+
+**Diffs:**
+- `PresentationDiff` - Complete diff analysis between two presentations
+- `SlideDiff` - Diff between two versions of a slide
+- `DiffSummary` - Summary statistics for a presentation diff
+- `DiffStatus` - Status of a slide: `'added' | 'removed' | 'modified' | 'unchanged' | 'moved'`
+- `TextDiff` - Line-level text change
 
 ### Functions
 
+**Parsing:**
 - `parseMarkdownChunks()` - Parse markdown into typed chunks
 - `parseMarkdownIntoPresentation()` - Create presentation from markdown
 - `extractSlideTitle()` - Extract title from slide content
+
+**Diffing:**
+- `diffPresentations()` - Compare two presentations and generate diff
+- `calculateDiffSummary()` - Generate summary statistics from a diff
+- `diffText()` - Low-level line-by-line text comparison
+- `hasChanges()` - Check if a diff has any changes
+- `formatDiffSummary()` - Format summary as human-readable string
+
+**Utilities:**
 - `parseBashCommands()` - Parse bash code blocks
 - `transformImageUrl()` - Transform relative URLs to absolute
+- `slidesAreEqual()` - Check if two slides are identical
+- `normalizeText()` - Normalize text for comparison
 
 ## License
 
