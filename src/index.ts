@@ -90,3 +90,21 @@ export {
   normalizeSlideContent,
 } from './diff';
 export type { SlideMatch } from './diff';
+
+// Skill exports - types
+export type {
+  SkillMetadata,
+  ParsedSkill,
+} from './types/skill';
+export {
+  SkillParseError,
+  SkillValidationError,
+} from './types/skill';
+
+// Skill exports - parser
+export {
+  parseSkillMarkdown,
+  extractSkillName,
+  extractSkillDescription,
+  isSkillMarkdown,
+} from './utils/skill-parser';

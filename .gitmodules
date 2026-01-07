@@ -1,0 +1,3 @@
+[submodule "test/fixtures/skills"]
+	path = test/fixtures/skills
+	url = https://github.com/anthropics/skills.git
