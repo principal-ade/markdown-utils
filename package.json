@@ -1,6 +1,6 @@
 {
   "name": "@principal-ade/markdown-utils",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Core markdown parsing and presentation utilities without React dependencies",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
