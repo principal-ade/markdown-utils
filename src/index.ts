@@ -95,6 +95,9 @@ export type { SlideMatch } from './diff';
 export type {
   SkillMetadata,
   ParsedSkill,
+  PartialSkillMetadata,
+  PartialParsedSkill,
+  ValidationWarning,
 } from './types/skill';
 export {
   SkillParseError,
@@ -104,6 +107,8 @@ export {
 // Skill exports - parser
 export {
   parseSkillMarkdown,
+  parseSkillMarkdownGraceful,
+  serializeSkillMarkdown,
   extractSkillName,
   extractSkillDescription,
   isSkillMarkdown,

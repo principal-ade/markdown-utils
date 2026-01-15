@@ -6,6 +6,9 @@
 import type {
   SkillMetadata,
   ParsedSkill,
+  PartialSkillMetadata,
+  PartialParsedSkill,
+  ValidationWarning,
 } from '../types/skill';
 import {
   SkillParseError,
@@ -176,6 +179,87 @@ function validateSkillMetadata(metadata: Record<string, unknown>): SkillMetadata
 }
 
 /**
+ * Parse skill metadata with graceful degradation
+ * Returns partial metadata and collects validation warnings instead of throwing
+ */
+function parseSkillMetadataGraceful(metadata: Record<string, unknown>): {
+  metadata: PartialSkillMetadata;
+  warnings: ValidationWarning[];
+} {
+  const warnings: ValidationWarning[] = [];
+  const partialMetadata: PartialSkillMetadata = {};
+
+  // Check name
+  if (!metadata.name || typeof metadata.name !== 'string' || !metadata.name.trim()) {
+    warnings.push({
+      field: 'name',
+      message: 'Required field "name" is missing or empty',
+    });
+  } else {
+    partialMetadata.name = metadata.name as string;
+  }
+
+  // Check description
+  if (!metadata.description || typeof metadata.description !== 'string' || !metadata.description.trim()) {
+    warnings.push({
+      field: 'description',
+      message: 'Required field "description" is missing or empty',
+    });
+  } else {
+    partialMetadata.description = metadata.description as string;
+  }
+
+  // Optional fields - add them if they exist and are valid
+  if (metadata.license !== undefined) {
+    if (typeof metadata.license !== 'string') {
+      warnings.push({
+        field: 'license',
+        message: 'Field "license" must be a string',
+      });
+    } else {
+      partialMetadata.license = metadata.license;
+    }
+  }
+
+  if (metadata.compatibility !== undefined) {
+    if (typeof metadata.compatibility !== 'string') {
+      warnings.push({
+        field: 'compatibility',
+        message: 'Field "compatibility" must be a string',
+      });
+    } else {
+      partialMetadata.compatibility = metadata.compatibility;
+    }
+  }
+
+  // Handle allowed-tools
+  if (metadata['allowed-tools'] !== undefined) {
+    if (typeof metadata['allowed-tools'] === 'string') {
+      const toolsString = metadata['allowed-tools'] as string;
+      partialMetadata['allowed-tools'] = toolsString.trim() ? toolsString.trim().split(/\s+/) : [];
+    } else {
+      warnings.push({
+        field: 'allowed-tools',
+        message: 'Field "allowed-tools" must be a space-delimited string',
+      });
+    }
+  }
+
+  if (metadata.metadata !== undefined) {
+    if (typeof metadata.metadata !== 'object' || Array.isArray(metadata.metadata)) {
+      warnings.push({
+        field: 'metadata',
+        message: 'Field "metadata" must be an object',
+      });
+    } else {
+      partialMetadata.metadata = metadata.metadata as Record<string, string>;
+    }
+  }
+
+  return { metadata: partialMetadata, warnings };
+}
+
+/**
  * Parse a SKILL.md file content into structured data
  *
  * @param content - The raw SKILL.md file content
@@ -271,5 +355,132 @@ export function isSkillMarkdown(content: string): boolean {
     return trimmed.startsWith('---') && trimmed.includes('\n---');
   } catch {
     return false;
+  }
+}
+
+/**
+ * Serialize a ParsedSkill object back to SKILL.md format
+ *
+ * @param skill - The parsed skill to serialize
+ * @returns SKILL.md formatted string
+ *
+ * @example
+ * ```typescript
+ * const skill: ParsedSkill = {
+ *   metadata: {
+ *     name: 'legal-review',
+ *     description: 'Review contracts',
+ *     license: 'MIT',
+ *     'allowed-tools': ['Read', 'Write']
+ *   },
+ *   body: '# Legal Review\n\nContent here...',
+ *   raw: '...'
+ * };
+ *
+ * const skillMd = serializeSkillMarkdown(skill);
+ * // Outputs valid SKILL.md format
+ * ```
+ */
+export function serializeSkillMarkdown(skill: ParsedSkill): string {
+  const lines: string[] = ['---'];
+
+  // Required fields first
+  lines.push(`name: ${skill.metadata.name}`);
+  lines.push(`description: ${skill.metadata.description}`);
+
+  // Optional fields in a consistent order
+  if (skill.metadata.license !== undefined) {
+    lines.push(`license: ${skill.metadata.license}`);
+  }
+
+  if (skill.metadata.compatibility !== undefined) {
+    lines.push(`compatibility: ${skill.metadata.compatibility}`);
+  }
+
+  // allowed-tools as space-delimited string per Agent Skills spec
+  if (skill.metadata['allowed-tools'] !== undefined && skill.metadata['allowed-tools'].length > 0) {
+    const toolsString = skill.metadata['allowed-tools'].join(' ');
+    lines.push(`allowed-tools: ${toolsString}`);
+  }
+
+  // Custom metadata as nested object
+  if (skill.metadata.metadata !== undefined) {
+    lines.push('metadata:');
+    for (const [key, value] of Object.entries(skill.metadata.metadata)) {
+      lines.push(`  ${key}: ${value}`);
+    }
+  }
+
+  lines.push('---');
+  lines.push('');
+  lines.push(skill.body);
+
+  return lines.join('\n');
+}
+
+/**
+ * Parse a SKILL.md file with graceful degradation
+ * Returns partial metadata with warnings instead of throwing on validation errors
+ *
+ * @param content - The raw SKILL.md file content
+ * @returns Partial parsed skill with metadata (possibly incomplete) and validation warnings
+ *
+ * @example
+ * ```typescript
+ * const content = `---
+ * name: legal-review
+ * # Missing description!
+ * ---
+ *
+ * # Legal Review
+ * `;
+ *
+ * const result = parseSkillMarkdownGraceful(content);
+ * console.log(result.metadata.name); // "legal-review"
+ * console.log(result.warnings); // [{ field: 'description', message: '...' }]
+ * ```
+ */
+export function parseSkillMarkdownGraceful(content: string): PartialParsedSkill {
+  try {
+    // Extract frontmatter and body
+    const { frontmatter, body } = extractFrontmatter(content);
+
+    // Parse YAML frontmatter
+    let rawMetadata: Record<string, unknown>;
+    try {
+      rawMetadata = parseYamlFrontmatter(frontmatter);
+    } catch (error) {
+      // If YAML parsing fails completely, return empty metadata with error
+      return {
+        metadata: {},
+        body,
+        raw: content,
+        warnings: [{
+          field: 'frontmatter',
+          message: `Failed to parse YAML frontmatter: ${error instanceof Error ? error.message : String(error)}`,
+        }],
+      };
+    }
+
+    // Parse metadata gracefully (collect warnings instead of throwing)
+    const { metadata, warnings } = parseSkillMetadataGraceful(rawMetadata);
+
+    return {
+      metadata,
+      body,
+      raw: content,
+      warnings,
+    };
+  } catch (error) {
+    // If frontmatter extraction fails, return minimal data
+    return {
+      metadata: {},
+      body: content,
+      raw: content,
+      warnings: [{
+        field: 'structure',
+        message: error instanceof Error ? error.message : 'Failed to parse SKILL.md structure',
+      }],
+    };
   }
 }

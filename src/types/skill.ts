@@ -22,6 +22,32 @@ export interface SkillMetadata {
 }
 
 /**
+ * Partial skill metadata (when some required fields are missing)
+ */
+export interface PartialSkillMetadata {
+  /** Optional: Name of the skill */
+  name?: string;
+  /** Optional: Description of what the skill does */
+  description?: string;
+  /** Optional: License information */
+  license?: string;
+  /** Optional: Compatibility requirements */
+  compatibility?: string;
+  /** Optional: List of allowed tools the skill can use (parsed from space-delimited string) */
+  'allowed-tools'?: string[];
+  /** Optional: Custom metadata key-value pairs */
+  metadata?: Record<string, string>;
+}
+
+/**
+ * Validation warning for missing or invalid fields
+ */
+export interface ValidationWarning {
+  field: string;
+  message: string;
+}
+
+/**
  * Parsed SKILL.md file with frontmatter and markdown body
  */
 export interface ParsedSkill {
@@ -31,6 +57,22 @@ export interface ParsedSkill {
   body: string;
   /** Raw original content */
   raw: string;
+  /** Validation warnings (if any) */
+  warnings?: ValidationWarning[];
+}
+
+/**
+ * Parsed SKILL.md with partial metadata (for graceful degradation)
+ */
+export interface PartialParsedSkill {
+  /** Partial metadata from YAML frontmatter */
+  metadata: PartialSkillMetadata;
+  /** Markdown content (body after frontmatter) */
+  body: string;
+  /** Raw original content */
+  raw: string;
+  /** Validation warnings/errors */
+  warnings: ValidationWarning[];
 }
 
 /**
