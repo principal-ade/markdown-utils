@@ -42,7 +42,21 @@ export function transformImageUrl(src: string, repositoryInfo?: RepositoryInfo):
   let fullPath: string;
 
   if (src.startsWith('/')) {
-    // Absolute path from repository root - remove leading slash
+    // Check if this is a GitHub web-style path (e.g., /owner/repo/raw/branch/path or /owner/repo/blob/branch/path)
+    const githubWebPathMatch = src.match(/^\/([^/]+)\/([^/]+)\/(raw|blob)\/([^/]+)\/(.+)$/);
+
+    if (githubWebPathMatch) {
+      const [, srcOwner, srcRepo, , srcBranch, srcPath] = githubWebPathMatch;
+      // Use the path info from the URL itself
+      fullPath = srcPath;
+
+      // If the owner/repo/branch match our repository info, use them
+      // Otherwise, construct URL from the parsed path (cross-repo reference)
+      const rawUrl = `https://raw.githubusercontent.com/${srcOwner}/${srcRepo}/${srcBranch}/${srcPath}`;
+      return rawUrl;
+    }
+
+    // Regular absolute path from repository root - remove leading slash
     fullPath = src.substring(1);
   } else {
     // Relative path - resolve relative to the markdown file's location
