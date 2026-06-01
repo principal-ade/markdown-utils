@@ -65,6 +65,20 @@ export {
   findSlideIndexByTitle,
 } from './utils/slide-titles';
 
+// Type exports - sections
+export type {
+  MarkdownSection,
+  UpsertSectionOptions,
+  UpsertResult,
+} from './types/section';
+
+// Utility exports - sections
+export {
+  splitSections,
+  serializeSections,
+  upsertSection,
+} from './utils/markdown-sections';
+
 // Diff exports - types
 export type {
   DiffStatus,
