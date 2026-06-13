@@ -35,6 +35,11 @@ export {
   parseMarkdownChunks,
 } from './utils/markdown-parser';
 
+// Utility exports - rehype plugins
+export {
+  rehypeCodeKind,
+} from './utils/rehype-code-kind';
+
 // Utility exports - presentation
 export {
   extractSlideTitle,
