@@ -49,6 +49,15 @@ export {
   updatePresentationSlide,
 } from './utils/presentation';
 
+// Utility exports - document front matter
+export {
+  type ParsedFrontmatter,
+  parseFrontmatter,
+  stripRedundantTitleHeading,
+  fmString,
+  fmStringList,
+} from './utils/document-frontmatter';
+
 // Utility exports - bash parser
 export {
   parseBashCommands,
