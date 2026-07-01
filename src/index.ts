@@ -67,6 +67,7 @@ export {
 // Utility exports - image urls
 export {
   isRelativeUrl,
+  normalizeGitHubMediaUrl,
   transformImageUrl,
   transformMarkdownImageUrls,
 } from './utils/image-urls';

@@ -29,9 +29,49 @@ export function isRelativeUrl(url: string): boolean {
 }
 
 /**
+ * Normalizes a GitHub "web" media URL to its raw-bytes equivalent.
+ *
+ * A URL like `https://github.com/owner/repo/blob/main/img.png` points at
+ * GitHub's HTML page for that file, not the image itself, so using it as an
+ * `<img src>` renders broken. This rewrites the `blob`/`raw` web form to
+ * `https://raw.githubusercontent.com/owner/repo/main/img.png`, which serves the
+ * actual bytes. A trailing `?raw=true` (GitHub's own "give me the raw file"
+ * hint) is dropped since the raw host already serves raw bytes.
+ *
+ * Any URL that isn't a github.com blob/raw file path is returned unchanged, so
+ * this is safe to call on every URL (user-attachments, gists, arbitrary CDNs,
+ * relative paths, etc. all pass through untouched).
+ */
+export function normalizeGitHubMediaUrl(url: string): string {
+  const match = url.match(
+    /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/(?:blob|raw)\/([^/]+)\/(.+)$/,
+  );
+
+  if (!match) {
+    return url;
+  }
+
+  const [, owner, repo, branch, rest] = match;
+  // Drop a redundant `raw=true` query param (the raw host already serves raw
+  // bytes); keep any other query/fragment (e.g. private-repo `?token=...`).
+  const path = rest
+    .replace(/(\?|&)raw=true(&|$)/, (_, lead, tail) => (lead === '?' && tail === '&' ? '?' : tail || ''))
+    .replace(/\?$/, '');
+
+  return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`;
+}
+
+/**
  * Transforms a relative image URL to a GitHub raw URL
  */
 export function transformImageUrl(src: string, repositoryInfo?: RepositoryInfo): string {
+  // Normalize GitHub blob/raw web URLs to raw.githubusercontent.com first. This
+  // applies even without repositoryInfo, since the URL is self-describing.
+  const normalized = normalizeGitHubMediaUrl(src);
+  if (normalized !== src) {
+    return normalized;
+  }
+
   // If no repository info or URL is already absolute, return as-is
   if (!repositoryInfo || !isRelativeUrl(src)) {
     return src;
